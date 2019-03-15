@@ -2,8 +2,77 @@ import urllib.request as urlrequest,os
 import time
 import csv
 import pymysql
+import re
 
 import config
+
+def single_get_first(unicode1):
+    str1 = unicode1.encode('gbk')
+    try:
+        ord(str1)
+        return str1.decode('gbk')
+    except:
+        asc = str1[0] * 256 + str1[1] - 65536
+        if asc >= -20319 and asc <= -20284:
+            return 'a'
+        if asc >= -20283 and asc <= -19776:
+            return 'b'
+        if asc >= -19775 and asc <= -19219:
+            return 'c'
+        if asc >= -19218 and asc <= -18711:
+            return 'd'
+        if asc >= -18710 and asc <= -18527:
+            return 'e'
+        if asc >= -18526 and asc <= -18240:
+            return 'f'
+        if asc >= -18239 and asc <= -17923:
+            return 'g'
+        if asc >= -17922 and asc <= -17418:
+            return 'h'
+        if asc >= -17417 and asc <= -16475:
+            return 'j'
+        if asc >= -16474 and asc <= -16213:
+            return 'k'
+        if asc >= -16212 and asc <= -15641:
+            return 'l'
+        if asc >= -15640 and asc <= -15166:
+            return 'm'
+        if asc >= -15165 and asc <= -14923:
+            return 'n'
+        if asc >= -14922 and asc <= -14915:
+            return 'o'
+        if asc >= -14914 and asc <= -14631:
+            return 'p'
+        if asc >= -14630 and asc <= -14150:
+            return 'q'
+        if asc >= -14149 and asc <= -14091:
+            return 'r'
+        if asc >= -14090 and asc <= -13119:
+            return 's'
+        if asc >= -13118 and asc <= -12839:
+            return 't'
+        if asc >= -12838 and asc <= -12557:
+            return 'w'
+        if asc >= -12556 and asc <= -11848:
+            return 'x'
+        if asc >= -11847 and asc <= -11056:
+            return 'y'
+        if asc >= -11055 and asc <= -10247:
+            return 'z'
+        return ''
+
+
+def getPinyin(string):
+    if string == None:
+        return None
+    lst = list(string)
+    charLst = []
+    for l in lst:
+        charLst.append(single_get_first(l))
+    return ''.join(charLst)
+
+def cleanField(string):
+    return re.sub('[^\w]', '',string)
 
 # ROE = 归属于母公司所有者的净利润/归属于母公司股东权益合计
 
@@ -45,18 +114,26 @@ def create_tab_sql(code='000725', type='lrb'):
     with open(file, 'r') as f:  
         reader = csv.reader(f)
         fields = []
+        fields_pinyin = []
         for row in reader:
-            if len(row) is not 0:
+            # print(len(row))
+            if len(row) > 1:
                 fields.append(row[0])
-                     
+                py_name = cleanField(getPinyin(row[0]))
+                if py_name in fields_pinyin:
+                    fields_pinyin.append('{}_2'.format(py_name))
+                else:
+                    fields_pinyin.append(py_name)
+                
         # print(fields)
+        # print(fields_pinyin)
         sql = "CREATE TABLE `{}` (".format(type)
         sql += "`id` int(11) unsigned NOT NULL AUTO_INCREMENT,"
-        sql += "`code` varchar(255) DEFAULT '' COMMENT '{}',".format(code)
-        for k in fields:
-            sql += "`{}` varchar(255) DEFAULT '' COMMENT '{}',".format(k, k)
+        sql += "`code` varchar(24) DEFAULT '' COMMENT '{}',".format(code)
+        for k in range(len(fields)):
+            sql += "`{}` varchar(24) DEFAULT '' COMMENT '{}',".format(fields_pinyin[k], fields[k])
         sql += "PRIMARY KEY (`id`)"
-        sql += ") ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4; "
+        sql += ") ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4; "
         # print(sql)
         return sql
     return False
@@ -70,10 +147,18 @@ def insert_tab_sql(code='000725', type='lrb'):
     with open(file, mode='r') as f:  
         reader = csv.reader(f)
         fields = []
+        fields_pinyin = []
         csv_list = []
         for c_row in reader:
-            fields.append(str(c_row[0]))
-            csv_list.append(c_row)
+            if len(c_row) > 1:
+                fields.append(str(c_row[0]))
+                py_name = cleanField(getPinyin(c_row[0]))
+                if py_name in fields_pinyin:
+                    fields_pinyin.append('{}_2'.format(py_name))
+                else:
+                    fields_pinyin.append(py_name)
+
+                csv_list.append(c_row)
         # print(csv_list)
 
         row_len = len(csv_list)
@@ -95,13 +180,13 @@ def insert_tab_sql(code='000725', type='lrb'):
         # print(new_list)
         # print(fields)
 
-        sql  = 'INSERT INTO lrb  ('
+        sql  = 'INSERT INTO {}  ('.format(type)
         sql += '`code`,'
-        for i in range(len(fields)):
-            if i is not len(fields)-1:
-                sql += '`{}`,'.format(fields[i])
+        for i in range(len(fields_pinyin)):
+            if i is not len(fields_pinyin)-1:
+                sql += '`{}`,'.format(fields_pinyin[i])
             else:
-                sql += '`{}`'.format(fields[i])
+                sql += '`{}`'.format(fields_pinyin[i])
         sql += ')  VALUES'  
 
         for i in range(len(new_list)):
@@ -161,5 +246,6 @@ def exc_sql(code='000725'):
 
 if __name__ == '__main__':
     # download()
+    # create_tab_sql('000725', 'xjllb')
     exc_sql()
 
