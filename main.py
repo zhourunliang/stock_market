@@ -1,7 +1,11 @@
 import urllib.request as urlrequest,os
 import time
+import csv
+import pymysql
 
 import config
+
+# ROE = 归属于母公司所有者的净利润/归属于母公司股东权益合计
 
 def download(code='000725'):
 
@@ -32,5 +36,130 @@ def download(code='000725'):
     print("现金流量表下载完毕")
     time.sleep(3)
 
+
+def create_tab_sql(code='000725', type='lrb'):
+    '''
+    生成表语句
+    '''
+    file = 'download\\{}\\{}.csv'.format(type, code)
+    with open(file, 'r') as f:  
+        reader = csv.reader(f)
+        fields = []
+        for row in reader:
+            if len(row) is not 0:
+                fields.append(row[0])
+                     
+        # print(fields)
+        sql = "CREATE TABLE `{}` (".format(type)
+        sql += "`id` int(11) unsigned NOT NULL AUTO_INCREMENT,"
+        sql += "`code` varchar(255) DEFAULT '' COMMENT '{}',".format(code)
+        for k in fields:
+            sql += "`{}` varchar(255) DEFAULT '' COMMENT '{}',".format(k, k)
+        sql += "PRIMARY KEY (`id`)"
+        sql += ") ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4; "
+        # print(sql)
+        return sql
+    return False
+
+def insert_tab_sql(code='000725', type='lrb'):
+    '''
+    生成表插入语句
+    '''
+    file = 'download\\{}\\{}.csv'.format(type, code)
+    
+    with open(file, mode='r') as f:  
+        reader = csv.reader(f)
+        fields = []
+        csv_list = []
+        for c_row in reader:
+            fields.append(str(c_row[0]))
+            csv_list.append(c_row)
+        # print(csv_list)
+
+        row_len = len(csv_list)
+        # print('row_len={}'.format(row_len))
+
+        col_len = len(csv_list[0])-1
+        # print('col_len={}'.format(col_len))
+
+        # print(csv_list[row_len-1][col_len-2])
+
+        new_list = []
+        for i in range(1, col_len):
+            # print(i)
+            line = []
+            for j in range(0, row_len):
+                line.append(csv_list[j][i])
+            # print(line)
+            new_list.append(line)
+        # print(new_list)
+        # print(fields)
+
+        sql  = 'INSERT INTO lrb  ('
+        sql += '`code`,'
+        for i in range(len(fields)):
+            if i is not len(fields)-1:
+                sql += '`{}`,'.format(fields[i])
+            else:
+                sql += '`{}`'.format(fields[i])
+        sql += ')  VALUES'  
+
+        for i in range(len(new_list)):
+            sql += '("{}",'.format(code)
+            for j in range(len(new_list[i])):
+                if j is not len(new_list[i])-1:
+                    sql += '"{}",'.format(new_list[i][j])
+                else:
+                    sql += '"{}"'.format(new_list[i][j])
+            if i is not len(new_list)-1:
+                sql += '),'
+            else:
+                sql += ')'
+        # print(sql)
+        return sql
+    return False
+
+
+
+def exc_sql(code='000725'):
+    '''
+    执行SQL语语句
+    '''
+    conn = pymysql.connect(host='127.0.0.1',user='root', passwd='123456', db='mysql', charset='utf8')
+    cur = conn.cursor()
+    cur.execute("USE stock")
+    
+    # 利润表
+    sql = create_tab_sql('000725', 'lrb')
+    cur.execute(sql)
+    conn.commit()
+
+    sql = insert_tab_sql('000725', 'lrb')
+    cur.execute(sql)
+    conn.commit()
+
+    # 现金流量表
+    sql = create_tab_sql('000725', 'xjllb')
+    cur.execute(sql)
+    conn.commit()
+
+    sql = insert_tab_sql('000725', 'xjllb')
+    cur.execute(sql)
+    conn.commit()
+
+    # 资产负债表
+    sql = create_tab_sql('000725', 'zcfzb')
+    cur.execute(sql)
+    conn.commit()
+
+    sql = insert_tab_sql('000725', 'zcfzb')
+    cur.execute(sql)
+    conn.commit()
+    
+    cur.close()
+    conn.close()
+
 if __name__ == '__main__':
-    download()
+    # download()
+    exc_sql()
+
