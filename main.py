@@ -14,7 +14,9 @@ from utils import (
 # ROE = 归属于母公司所有者的净利润/归属于母公司股东权益合计
 
 def download(code='000725'):
-
+    '''
+    下载文件
+    '''
     print('正在下载#{}的资产负债表'.format(code))
     zcfzb_url = '{}{}.html?type=year'.format(config.download_pre_url_zcfzb, code)
     if not os.path.exists(config.save_folder_zcfzb):

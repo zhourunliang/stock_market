@@ -1,6 +1,9 @@
 import re
 
 def single_get_first(unicode1):
+    '''
+    获取中文字符中的拼音首字母
+    '''
     str1 = unicode1.encode('gbk')
     try:
         ord(str1)
@@ -57,6 +60,9 @@ def single_get_first(unicode1):
 
 
 def getPinyin(string):
+    '''
+    获取字符串拼音首字母
+    '''
     if string == None:
         return None
     lst = list(string)
@@ -66,4 +72,7 @@ def getPinyin(string):
     return ''.join(charLst)
 
 def cleanField(string):
+    '''
+    去除非字母的字符
+    '''
     return re.sub('[^\w]', '',string)
